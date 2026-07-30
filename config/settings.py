@@ -9,6 +9,8 @@ SECRET_KEY = config('SECRET_KEY')
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
+LOGS_DIR = BASE_DIR / 'logs'
+
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost 127.0.0.1').split()
 
 DJANGO_APPS = [
@@ -141,111 +143,105 @@ MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # ─── LOGGING ──────────────────────────────────────────────────────────────────
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-
-    # ── Formatters — how each log line looks ──────────────────────────────────
-    'formatters': {
-        'verbose': {
-            'format': '[{asctime}] {levelname} {name} {module}:{lineno} — {message}',
-            'style': '{',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
+if LOGS_DIR.exists():
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '[{asctime}] {levelname} {name} {module}:{lineno} — {message}',
+                'style': '{',
+                'datefmt': '%Y-%m-%d %H:%M:%S',
+            },
+            'simple': {
+                'format': '[{asctime}] {levelname} — {message}',
+                'style': '{',
+                'datefmt': '%Y-%m-%d %H:%M:%S',
+            },
+            'api': {
+                'format': '[{asctime}] {levelname} {message}',
+                'style': '{',
+                'datefmt': '%Y-%m-%d %H:%M:%S',
+            },
         },
-        'simple': {
-            'format': '[{asctime}] {levelname} — {message}',
-            'style': '{',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'simple',
+                'level': 'DEBUG',
+            },
+            'file_general': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'workpulse.log',
+                'maxBytes': 5 * 1024 * 1024,
+                'backupCount': 5,
+                'formatter': 'verbose',
+                'level': 'DEBUG',
+                'encoding': 'utf-8',
+            },
+            'file_errors': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'errors.log',
+                'maxBytes': 5 * 1024 * 1024,
+                'backupCount': 5,
+                'formatter': 'verbose',
+                'level': 'ERROR',
+                'encoding': 'utf-8',
+            },
+            'file_api': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'api_requests.log',
+                'maxBytes': 5 * 1024 * 1024,
+                'backupCount': 5,
+                'formatter': 'api',
+                'level': 'INFO',
+                'encoding': 'utf-8',
+            },
         },
-        'api': {
-            'format': '[{asctime}] {levelname} {message}',
-            'style': '{',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
+        'loggers': {
+            'apps': {
+                'handlers': ['console', 'file_general', 'file_errors'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+            'api_requests': {
+                'handlers': ['file_api', 'console'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+            'django': {
+                'handlers': ['console', 'file_general'],
+                'level': 'WARNING',
+                'propagate': False,
+            },
+            'django.request': {
+                'handlers': ['file_errors', 'console'],
+                'level': 'ERROR',
+                'propagate': False,
+            },
+            'django.db.backends': {
+                'handlers': ['console'],
+                'level': 'WARNING',
+                'propagate': False,
+            },
         },
-    },
-
-    # ── Handlers — where logs go ──────────────────────────────────────────────
-    'handlers': {
-        # Print to terminal (you already see Django's output here)
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-            'level': 'DEBUG',
+    }
+else:
+    # Production — console only (no logs/ directory on server)
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'level': 'WARNING',
+            },
         },
-
-        # General app log file — rotates at 5MB, keeps 5 backup files
-        'file_general': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'workpulse.log',
-            'maxBytes': 5 * 1024 * 1024,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-            'level': 'DEBUG',
-            'encoding': 'utf-8',
+        'loggers': {
+            'django': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+            'django.request': {'handlers': ['console'], 'level': 'ERROR', 'propagate': False},
         },
-
-        # Error-only file
-        'file_errors': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'errors.log',
-            'maxBytes': 5 * 1024 * 1024,
-            'backupCount': 5,
-            'formatter': 'verbose',
-            'level': 'ERROR',
-            'encoding': 'utf-8',
-        },
-
-        # API request log file
-        'file_api': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'api_requests.log',
-            'maxBytes': 5 * 1024 * 1024,
-            'backupCount': 5,
-            'formatter': 'api',
-            'level': 'INFO',
-            'encoding': 'utf-8',
-        },
-    },
-
-    # ── Loggers — who logs what ───────────────────────────────────────────────
-    'loggers': {
-        # Your entire app
-        'apps': {
-            'handlers': ['console', 'file_general', 'file_errors'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-
-        # API requests specifically
-        'api_requests': {
-            'handlers': ['file_api', 'console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-
-        # Django's own logger (SQL, server errors etc.)
-        'django': {
-            'handlers': ['console', 'file_general'],
-            'level': 'WARNING',   # only warnings and above from Django itself
-            'propagate': False,
-        },
-
-        # Django request errors (500s, 404s)
-        'django.request': {
-            'handlers': ['file_errors', 'console'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-
-        # Database queries — set to WARNING to avoid noise
-        # Change to DEBUG if you want to see every SQL query
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': 'WARNING',
-            'propagate': False,
-        },
-    },
-}
+    }
 
 FRONTEND_URL      = config('FRONTEND_URL',      default='http://localhost:5173')
 EMAIL_WEBHOOK_URL = config('EMAIL_WEBHOOK_URL',  default='http://localhost:3001')
