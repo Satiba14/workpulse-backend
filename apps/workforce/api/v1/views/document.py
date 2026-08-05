@@ -44,9 +44,8 @@ class EmployeeDocumentUploadView(APIView):
         rel_path = f"employee_docs/{pk}/{filename}"
 
         saved_path = default_storage.save(rel_path, ContentFile(file.read()))
-        media_url  = settings.MEDIA_URL.rstrip('/')
-        file_url   = request.build_absolute_uri(f"{media_url}/{saved_path}")
-
+        file_url = default_storage.url(saved_path)
+        
         # ── Replace existing document of the SAME type instead of duplicating ──
         existing = EmployeeDocumentMaster.objects.filter(
             employee_professional_details=prof,
@@ -57,11 +56,10 @@ class EmployeeDocumentUploadView(APIView):
         if existing:
             # Optionally remove old physical file from storage
             try:
-                old_rel_path = existing.file_path.split(media_url, 1)[-1].lstrip('/')
-                if old_rel_path and default_storage.exists(old_rel_path):
-                    default_storage.delete(old_rel_path)
+                if default_storage.exists(saved_path):
+                    default_storage.delete(saved_path)
             except Exception:
-                pass  # don't block the update if old file cleanup fails
+                pass  
 
             existing.name      = doc_name
             existing.file_path = file_url
