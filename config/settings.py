@@ -34,7 +34,7 @@ LOCAL_APPS = [
     'apps.workforce',
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + ['cloudinary', 'cloudinary_storage']
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -245,6 +245,15 @@ else:
 
 FRONTEND_URL      = config('FRONTEND_URL',      default='http://localhost:5173')
 EMAIL_WEBHOOK_URL = config('EMAIL_WEBHOOK_URL',  default='http://localhost:3001')
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY':    config('CLOUDINARY_API_KEY'),
+    'API_SECRET': config('CLOUDINARY_API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
