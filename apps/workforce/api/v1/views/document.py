@@ -41,10 +41,11 @@ class EmployeeDocumentUploadView(APIView):
                 status=400
             )
 
+        resource_type = "raw" if ext in {'.pdf', '.doc', '.docx'} else "image"
         upload_result = cloudinary.uploader.upload(
             file,
             folder=f"workpulse/employee_docs/{pk}",
-            resource_type="auto",
+            resource_type=resource_type,
         )
         file_url = upload_result['secure_url']
         
