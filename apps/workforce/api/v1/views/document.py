@@ -47,6 +47,8 @@ class EmployeeDocumentUploadView(APIView):
             folder=f"workpulse/employee_docs/{pk}",
             resource_type=resource_type,
             format="",
+            type="upload",        
+            access_mode="public",
         )
         file_url = upload_result['secure_url']
         
