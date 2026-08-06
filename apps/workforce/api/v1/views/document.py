@@ -44,7 +44,15 @@ class EmployeeDocumentUploadView(APIView):
         rel_path = f"employee_docs/{pk}/{filename}"
 
         saved_path = default_storage.save(rel_path, ContentFile(file.read()))
-        file_url = default_storage.url(saved_path)
+        try:
+            file_url = default_storage.url(saved_path)
+            # If it's a relative URL, make it absolute using Render backend URL
+            if file_url.startswith('/'):
+                backend_url = 'https://workpulse-backend-ogzr.onrender.com'
+                file_url = f"{backend_url}{file_url}"
+        except Exception:
+            media_url = settings.MEDIA_URL.rstrip('/')
+            file_url = f"https://workpulse-backend-ogzr.onrender.com{media_url}/{saved_path}"
         
         # ── Replace existing document of the SAME type instead of duplicating ──
         existing = EmployeeDocumentMaster.objects.filter(
