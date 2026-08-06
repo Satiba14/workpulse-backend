@@ -7,6 +7,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+import cloudinary.uploader
 
 from apps.workforce.models import EmployeeDocumentMaster, EmployeeProfessionalDetails
 
@@ -40,19 +41,12 @@ class EmployeeDocumentUploadView(APIView):
                 status=400
             )
 
-        filename = f"{uuid_lib.uuid4()}{ext}"
-        rel_path = f"employee_docs/{pk}/{filename}"
-
-        saved_path = default_storage.save(rel_path, ContentFile(file.read()))
-        try:
-            file_url = default_storage.url(saved_path)
-            # If it's a relative URL, make it absolute using Render backend URL
-            if file_url.startswith('/'):
-                backend_url = 'https://workpulse-backend-ogzr.onrender.com'
-                file_url = f"{backend_url}{file_url}"
-        except Exception:
-            media_url = settings.MEDIA_URL.rstrip('/')
-            file_url = f"https://workpulse-backend-ogzr.onrender.com{media_url}/{saved_path}"
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder=f"workpulse/employee_docs/{pk}",
+            resource_type="auto",
+        )
+        file_url = upload_result['secure_url']
         
         # ── Replace existing document of the SAME type instead of duplicating ──
         existing = EmployeeDocumentMaster.objects.filter(
