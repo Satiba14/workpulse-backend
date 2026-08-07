@@ -5,8 +5,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 import cloudinary.uploader
 
 from apps.workforce.models import EmployeeDocumentMaster, EmployeeProfessionalDetails
@@ -40,15 +38,16 @@ class EmployeeDocumentUploadView(APIView):
                 {'error': 'Only PDF, PNG, JPG, JPEG, WEBP, SVG, DOC and DOCX files are allowed.'},
                 status=400
             )
+        
+        file_content = file.read() 
 
         resource_type = "raw" if ext in {'.pdf', '.doc', '.docx'} else "image"
         upload_result = cloudinary.uploader.upload(
-            file,
+            file_content,
             folder=f"workpulse/employee_docs/{pk}",
             resource_type=resource_type,
             format="",
             type="upload",        
-            access_mode="public",
         )
         file_url = upload_result['secure_url']
         
@@ -60,13 +59,6 @@ class EmployeeDocumentUploadView(APIView):
         ).first()
 
         if existing:
-            # Optionally remove old physical file from storage
-            try:
-                if default_storage.exists(saved_path):
-                    default_storage.delete(saved_path)
-            except Exception:
-                pass  
-
             existing.name      = doc_name
             existing.file_path = file_url
             existing.unique_id = str(uuid_lib.uuid4())[:8].upper()
